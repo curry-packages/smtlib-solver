@@ -15,5 +15,9 @@
         "pakcs": ">= 2.0.0",
         "kics2": ">= 2.0.0"
   },
-  "exportedModules": ["Solver.SMTLIB.Z3"]
+  "exportedModules": ["Solver.SMTLIB.Z3"],
+  "source": {
+     "git": "https://git.ps.informatik.uni-kiel.de/curry-packages/smtlib-solver.git",
+     "tag": "$version"
+  }
 }

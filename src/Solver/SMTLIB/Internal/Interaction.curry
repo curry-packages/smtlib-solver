@@ -15,7 +15,7 @@ import IOExts    (execCmd)
 import Text.Pretty
 
 import           Language.SMTLIB.Files        (writeSMTDump)
-import           Language.SMTLIB.Goodies      (echo, isEcho)
+import           Language.SMTLIB.Goodies      (comment, echo, isEcho)
 import           Language.SMTLIB.Parser       (parseCmdRsps)
 import           Language.SMTLIB.Pretty
 import qualified Language.SMTLIB.Types as SMT
@@ -235,8 +235,8 @@ bufferGlobalDefs = do
   gdefs <- getGlobalCmds
   unlessM (null gdefs) $ do
     info "Asserting global definitions"
-    bufferCmds $ (echo "----- BEGIN GLOBAL DEFINITIONS -----") : gdefs
-      ++ [echo "----- END GLOBAL DEFINITIONS -----"]
+    bufferCmds $ (comment "----- BEGIN GLOBAL DEFINITIONS -----") : gdefs
+      ++ [comment "----- END   GLOBAL DEFINITIONS -----"]
     isInc <- isIncremental
     whenM isInc $ modify $ \s -> s { options = (options s) { globalCmds = [] } }
 
@@ -282,7 +282,7 @@ termSession (SMTSession (i, o, e) _ _ opts) = do
 
 --- Produce dump of SMT-LIB commands used during an SMT session
 dumpSession :: SMTSession -> IO ()
-dumpSession s = writeSMTDump "smtDump" (trace s)
+dumpSession s = writeSMTDump "smtDump" (rmvEchos $ trace s)
 
 --- Buffer given SMT-LIB commands
 bufferCmds :: [SMT.Command] -> SMT ()

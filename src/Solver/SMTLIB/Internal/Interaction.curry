@@ -5,17 +5,16 @@
 --- in Curry which are required during the interaction with an SMT solver.
 ---
 --- @author  Jan Tikovsky, Marcellus Siegburg
---- @version November 2017
+--- @version December 2017
 --- ----------------------------------------------------------------------------
 module Solver.SMTLIB.Internal.Interaction where
 
-import Directory (createDirectoryIfMissing, getCurrentDirectory)
-import FilePath  ((</>))
 import IO        (Handle, hClose, hFlush, hPutStr)
 import IOExts    (execCmd)
 
-import Text.Pretty hiding ((</>))
+import Text.Pretty
 
+import           Language.SMTLIB.Files        (writeSMTDump)
 import           Language.SMTLIB.Goodies      (echo, isEcho)
 import           Language.SMTLIB.Parser       (parseCmdRsps)
 import           Language.SMTLIB.Pretty
@@ -283,12 +282,7 @@ termSession (SMTSession (i, o, e) _ _ opts) = do
 
 --- Produce dump of SMT-LIB commands used during an SMT session
 dumpSession :: SMTSession -> IO ()
-dumpSession s = do
-  cdir <- getCurrentDirectory
-  let dumpDir = cdir </> ".smt"
-  createDirectoryIfMissing True dumpDir
-  dumpFile <- getUniqueFN "smtDump" "smt2" >>= \fn -> return $ dumpDir </> fn
-  writeFile dumpFile $ showSMT $ rmvEchos $ trace s
+dumpSession s = writeSMTDump "smtDump" (trace s)
 
 --- Buffer given SMT-LIB commands
 bufferCmds :: [SMT.Command] -> SMT ()

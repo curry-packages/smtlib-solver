@@ -2,19 +2,11 @@
 --- This module provides utilities for interacting with SMT solvers.
 ---
 --- @author  Jan Tikovsky
---- @version November 2017
+--- @version December 2017
 --- ----------------------------------------------------------------------------
 module Solver.SMTLIB.Internal.Utils where
 
 import IO       (Handle, hGetLine)
-import FilePath ((</>), (<.>))
-import Time     (getLocalTime, calendarTimeToString)
-
---- Generate a unique file name with the given prefix and file extension
-getUniqueFN :: String -> String -> IO String
-getUniqueFN prefix ext = do
-  tstmp <- getLocalTime
-  return $ prefix ++ calendarTimeToString tstmp <.> ext
 
 --- Delimiter (for SMT-LIB command responses)
 delim :: String

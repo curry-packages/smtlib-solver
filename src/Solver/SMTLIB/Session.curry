@@ -16,7 +16,6 @@ module Solver.SMTLIB.Session
 import Language.SMTLIB.Types (Command, ModelRsp, Term, ValuationPair)
 
 import Solver.SMTLIB.Internal.Interaction
-import Solver.SMTLIB.Internal.Utils       (whenM)
 import Solver.SMTLIB.Types
 
 --- default options for SMT solving

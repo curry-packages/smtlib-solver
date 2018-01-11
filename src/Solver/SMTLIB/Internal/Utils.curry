@@ -20,11 +20,3 @@ hGetUntil h d = do
   let l' = if c == '@' then "" else l
   if cs == d then return ""
              else hGetUntil h d >>= \ls -> return (l' ++ '\n' : ls)
-
---- Perform given monadic action only if boolean condition is satisfied
-whenM :: Monad m => Bool -> m () -> m ()
-whenM p a = if p then a else return ()
-
---- Perform given monadic action only if boolean condition is not satisfied
-unlessM :: Monad m => Bool -> m () -> m ()
-unlessM p = whenM (not p)

@@ -45,8 +45,8 @@ data SMTSess a = SMTSess { runSMTSess :: SMTSession -> SMT (a, SMTSession) }
 instance Monad SMTSess where
   return x = SMTSess $ \s -> return (x, s)
 
-  (SMTSess m) >>= f = SMTSess $ \s -> do
-    (r, s') <- m s
+  m >>= f = SMTSess $ \s -> do
+    (r, s') <- runSMTSess m s
     runSMTSess (f r) s'
 
 --- Get SMT session
@@ -79,8 +79,8 @@ data SMT a = SMT { runSMT :: SMTSession -> IO (a, SMTSession) }
 instance Monad SMT where
   return x = SMT $ \s -> return (x, s)
 
-  (SMT m) >>= f = SMT $ \s -> do
-    (r, s') <- m s
+  m >>= f = SMT $ \s -> do
+    (r, s') <- runSMT m s
     runSMT (f r) s'
 
 --- Evaluate an SMT action

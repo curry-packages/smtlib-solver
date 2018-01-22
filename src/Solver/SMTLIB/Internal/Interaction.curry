@@ -5,7 +5,7 @@
 --- in Curry which are required during the interaction with an SMT solver.
 ---
 --- @author  Jan Tikovsky, Marcellus Siegburg
---- @version December 2017
+--- @version January 2018
 --- ----------------------------------------------------------------------------
 module Solver.SMTLIB.Internal.Interaction where
 
@@ -15,7 +15,7 @@ import IOExts    (execCmd)
 import Text.Pretty
 
 import           Language.SMTLIB.Files        (writeSMTDump)
-import           Language.SMTLIB.Goodies      (comment, echo, isEcho)
+import           Language.SMTLIB.Goodies      (comment, echo, isEcho, var)
 import           Language.SMTLIB.Parser       (parseCmdRsps)
 import           Language.SMTLIB.Pretty
 import qualified Language.SMTLIB.Types as SMT
@@ -28,11 +28,15 @@ import Solver.SMTLIB.Types
 ---   * a buffer for SMT-LIB commands
 ---   * a trace of SMT-LIB commands (only required for debugging purposes)
 ---   * SMT options
+---   * an index for fresh variables
+---   * a list of global SMT-LIB declarations
 data SMTSession = SMTSession
-  { handles :: (Handle, Handle, Handle)
-  , buffer  :: [SMT.Command]
-  , trace   :: [SMT.Command]
-  , options :: SMTOpts
+  { handles     :: (Handle, Handle, Handle)
+  , buffer      :: [SMT.Command]
+  , trace       :: [SMT.Command]
+  , options     :: SMTOpts
+  , fresh       :: Int
+  , globalDecls :: [SMT.Command]
   }
 
 --- Session monad maintaining session information during multiple SMT sessions
@@ -126,6 +130,10 @@ getGlobalCmds = gets (globalCmds . options)
 isIncremental :: SMT Bool
 isIncremental = gets (incremental . options)
 
+--- Get global declarations
+getGlobalDecls :: SMT [SMT.Command]
+getGlobalDecls = gets globalDecls
+
 --- Modify an SMT session by applying the given function
 modify :: (SMTSession -> SMTSession) -> SMT ()
 modify f = SMT $ \s -> return ((), f s)
@@ -189,6 +197,17 @@ res2Msgs res = case res of
   Unknown    -> [SolverError "Unknown"]
   _          -> [OtherError ("Unexpected result: " ++ show res)]
 
+--- Declare n fresh SMT variables of given sort
+declareVars :: Int -> SMT.Sort -> SMT [SMT.Term]
+declareVars n sort = do
+  s <- get
+  let v     = fresh s
+      names = map (('x' :) . show) [v .. v + n - 1]
+  put s { fresh       = v + n
+        , globalDecls = globalDecls s ++ map (flip SMT.DeclareConst sort) names
+        }
+  return $ map var names
+
 --- Check for syntactic errors as well as for satisfiability of the assertions
 checkSat :: SMT SMTResult
 checkSat = do
@@ -232,13 +251,16 @@ getValues ts = do
 --- Buffer global definitions in SMT session
 bufferGlobalDefs :: SMT ()
 bufferGlobalDefs = do
-  gdefs <- getGlobalCmds
-  unlessM (null gdefs) $ do
+  globals <- getGlobalDecls >>= \ds   ->
+             getGlobalCmds  >>= \cmds -> return (ds ++ cmds)
+  unlessM (null globals) $ do
     info "Asserting global definitions"
-    bufferCmds $ (comment "----- BEGIN GLOBAL DEFINITIONS -----") : gdefs
+    bufferCmds $ (comment "----- BEGIN GLOBAL DEFINITIONS -----") : globals
       ++ [comment "----- END   GLOBAL DEFINITIONS -----"]
     isInc <- isIncremental
-    whenM isInc $ modify $ \s -> s { options = (options s) { globalCmds = [] } }
+    whenM isInc $ modify $ \s -> s { options = (options s) { globalCmds = [] }
+                                   , globalDecls = []
+                                   }
 
 --- Reset SMT session (by resetting the SMT solver stack)
 resetSession :: SMT ()
@@ -269,12 +291,12 @@ startSession :: SMTSolver -> SMTOpts -> IO SMTSession
 startSession solver opts = do
   unlessM (quiet opts) $ putStrLn $ "Starting " ++ sname ++ " session."
   hs <- execCmd $ unwords $ sname : flags solver
-  return $ SMTSession hs [] [] opts
+  return $ SMTSession hs [] [] opts 1 []
  where sname = executable solver
 
 --- Terminate SMT solver process
 termSession :: SMTSession -> IO ()
-termSession (SMTSession (i, o, e) _ _ opts) = do
+termSession (SMTSession (i, o, e) _ _ opts _ _) = do
   unlessM (quiet opts) $ putStrLn "Terminating session."
   hClose i
   hClose o

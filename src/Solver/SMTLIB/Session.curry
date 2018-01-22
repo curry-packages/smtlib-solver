@@ -4,16 +4,16 @@
 --- Currently only the Z3 SMT solver is supported.
 ---
 --- @author  Jan Tikovsky, Marcellus Siegburg
---- @version November 2017
+--- @version January 2018
 --- ----------------------------------------------------------------------------
 module Solver.SMTLIB.Session
   ( module Solver.SMTLIB.Types
   , SMTError (..), SMTOpts (..), SMTSess, SMTSolver (..)
-  , defSMTOpts, evalSessions, setSMTOpts, solveSMT, solveSMTVars
+  , defSMTOpts, evalSessions, freshSMTVars, setSMTOpts, solveSMT, solveSMTVars
   , liftIOA
   ) where
 
-import Language.SMTLIB.Types (Command, ModelRsp, Term, ValuationPair)
+import Language.SMTLIB.Types (Command, ModelRsp, Sort, Term, ValuationPair)
 
 import Solver.SMTLIB.Internal.Interaction
 import Solver.SMTLIB.Types
@@ -36,6 +36,10 @@ setSMTOpts :: SMTOpts -> SMTSess ()
 setSMTOpts opts = evalSession $ do
   resetSession
   modify $ \s -> s { options = opts }
+
+--- Get n fresh variables of given sort
+freshSMTVars :: Int -> Sort -> SMTSess [Term]
+freshSMTVars n s = evalSession $ declareVars n s
 
 --- Solve the SMT problem specified by the given SMT-LIB commands and
 --- try to find a binding for all variables used

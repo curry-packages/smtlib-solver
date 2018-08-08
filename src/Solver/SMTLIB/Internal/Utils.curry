@@ -6,7 +6,7 @@
 --- ----------------------------------------------------------------------------
 module Solver.SMTLIB.Internal.Utils where
 
-import IO       (Handle, hGetLine)
+import System.IO (Handle, hGetLine)
 
 --- Delimiter (for SMT-LIB command responses)
 delim :: String

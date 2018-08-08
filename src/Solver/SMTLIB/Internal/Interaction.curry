@@ -9,7 +9,7 @@
 --- ----------------------------------------------------------------------------
 module Solver.SMTLIB.Internal.Interaction where
 
-import IO        (Handle, hClose, hFlush, hPutStr)
+import System.IO (Handle, hClose, hFlush, hPutStr)
 import IOExts    (execCmd)
 
 import Text.Pretty

@@ -7,13 +7,10 @@
   "license": "BSD-3-Clause",
   "licenseFile": "LICENSE",
   "dependencies": {
-      "base": ">= 1.0.0, < 2.0.0",
-      "smtlib":    ">= 0.0.1",
-      "wl-pprint": ">= 0.0.1"
-  },
-  "compilerCompatibility": {
-        "pakcs": ">= 2.0.0",
-        "kics2": ">= 2.0.0"
+      "base":      ">= 3.0.0, < 4.0.0",
+      "smtlib":    ">= 3.0.0, < 4.0.0",
+      "wl-pprint": ">= 3.0.0, < 4.0.0",
+      "io-extra":  ">= 3.0.0, < 4.0.0"
   },
   "exportedModules": ["Solver.SMTLIB.Z3"],
   "source": {

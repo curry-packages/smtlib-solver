@@ -1,6 +1,6 @@
 {
   "name": "smtlib-solver",
-  "version": "0.0.1",
+  "version": "3.0.0",
   "author": "Jan Rasmus Tikovsky <jrt@informatik.uni-kiel.de>",
   "synopsis": "This package provides general operations for an interactive communication with SMT solvers via stdin and stdout.",
   "category": [ "Verification" ],

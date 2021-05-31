@@ -9,8 +9,10 @@
 --- ----------------------------------------------------------------------------
 module Solver.SMTLIB.Internal.Interaction where
 
-import IO        (Handle, hClose, hFlush, hPutStr)
-import IOExts    (execCmd)
+import System.IO        (Handle, hClose, hFlush, hPutStr)
+import System.IOExts    (execCmd)
+
+import Control.Monad (when, unless)
 
 import Text.Pretty
 
@@ -42,6 +44,13 @@ data SMTSession = SMTSession
 --- Session monad maintaining session information during multiple SMT sessions
 data SMTSess a = SMTSess { runSMTSess :: SMTSession -> SMT (a, SMTSession) }
 
+instance Functor SMTSess where
+  fmap f (SMTSess g) = SMTSess (fmap (\(x,y) -> (f x, y)) . g)
+
+instance Applicative SMTSess where
+  pure = return
+  af <*> ax = af >>= \f -> fmap f ax
+
 instance Monad SMTSess where
   return x = SMTSess $ \s -> return (x, s)
 
@@ -69,12 +78,19 @@ evalSessionsImpl solver opts as = do
   s       <- startSession solver opts
   (r, s') <- runSMT (evalSess as >>= \res -> closeSession >> return res) s
   termSession s'
-  whenM (tracing $ options s') (dumpSession s')
+  when (tracing $ options s') (dumpSession s')
   return r
 
 --- SMT monad maintaining session information while performing SMT actions
 --- during a single SMT session
 data SMT a = SMT { runSMT :: SMTSession -> IO (a, SMTSession) }
+
+instance Functor SMT where
+  fmap f (SMT g) = SMT (fmap (\(x,y) -> (f x, y)) . g)
+
+instance Applicative SMT where
+  pure = return
+  af <*> ax = af >>= \f -> fmap f ax
 
 instance Monad SMT where
   return x = SMT $ \s -> return (x, s)
@@ -253,12 +269,12 @@ bufferGlobalDefs :: SMT ()
 bufferGlobalDefs = do
   globals <- getGlobalDecls >>= \ds   ->
              getGlobalCmds  >>= \cmds -> return (ds ++ cmds)
-  unlessM (null globals) $ do
+  unless (null globals) $ do
     info "Asserting global definitions"
     bufferCmds $ (comment "----- BEGIN GLOBAL DEFINITIONS -----") : globals
       ++ [comment "----- END   GLOBAL DEFINITIONS -----"]
     isInc <- isIncremental
-    whenM isInc $ modify $ \s -> s { options = (options s) { globalCmds = [] }
+    when isInc $ modify $ \s -> s { options = (options s) { globalCmds = [] }
                                    , globalDecls = []
                                    }
 
@@ -268,7 +284,7 @@ resetSession = modify $ \s -> s { buffer = [SMT.Reset] }
 
 --- Optional reset of SMT session (in case of non-incremental solving)
 optReset :: SMT ()
-optReset = isIncremental >>= \isInc -> unlessM isInc $ do
+optReset = isIncremental >>= \isInc -> unless isInc $ do
   info "Resetting SMT solver stack"
   resetSession
 
@@ -276,7 +292,7 @@ optReset = isIncremental >>= \isInc -> unlessM isInc $ do
 optTracing :: [SMT.Command] -> SMT ()
 optTracing buf = do
   s <- get
-  whenM (tracing $ options s) (put s { trace = trace s ++ buf })
+  when (tracing $ options s) (put s { trace = trace s ++ buf })
 
 --- Close SMT session
 closeSession :: SMT ()
@@ -289,7 +305,7 @@ closeSession = sendCmds [SMT.Exit]
 --- Start SMT solver process and initialize fresh SMT session
 startSession :: SMTSolver -> SMTOpts -> IO SMTSession
 startSession solver opts = do
-  unlessM (quiet opts) $ putStrLn $ "Starting " ++ sname ++ " session."
+  unless (quiet opts) $ putStrLn $ "Starting " ++ sname ++ " session."
   hs <- execCmd $ unwords $ sname : flags solver
   return $ SMTSession hs [] [] opts 1 []
  where sname = executable solver
@@ -297,7 +313,7 @@ startSession solver opts = do
 --- Terminate SMT solver process
 termSession :: SMTSession -> IO ()
 termSession (SMTSession (i, o, e) _ _ opts _ _) = do
-  unlessM (quiet opts) $ putStrLn "Terminating session."
+  unless (quiet opts) $ putStrLn "Terminating session."
   hClose i
   hClose o
   hClose e
@@ -326,7 +342,7 @@ getDelimited = getStdout >>= liftIO2SMT . flip hGetUntil delim
 --- Write status information to the command line
 --- when quiet option is set to False
 info :: String -> SMT ()
-info msg = get >>= \s -> unlessM (quiet (options s)) $ liftIO2SMT $ putStrLn msg
+info msg = get >>= \s -> unless (quiet (options s)) $ liftIO2SMT $ putStrLn msg
 
 --- Remove all 'Echo' commands
 rmvEchos :: [SMT.Command] -> [SMT.Command]

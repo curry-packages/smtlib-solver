@@ -1,19 +1,16 @@
 {
   "name": "smtlib-solver",
-  "version": "0.0.1",
+  "version": "3.0.0",
   "author": "Jan Rasmus Tikovsky <jrt@informatik.uni-kiel.de>",
   "synopsis": "This package provides general operations for an interactive communication with SMT solvers via stdin and stdout.",
   "category": [ "Verification" ],
   "license": "BSD-3-Clause",
   "licenseFile": "LICENSE",
   "dependencies": {
-      "base": ">= 1.0.0, < 2.0.0",
-      "smtlib":    ">= 0.0.1",
-      "wl-pprint": ">= 0.0.1"
-  },
-  "compilerCompatibility": {
-        "pakcs": ">= 2.0.0",
-        "kics2": ">= 2.0.0"
+      "base":      ">= 3.0.0, < 4.0.0",
+      "smtlib":    ">= 3.0.0, < 4.0.0",
+      "wl-pprint": ">= 3.0.0, < 4.0.0",
+      "io-extra":  ">= 3.0.0, < 4.0.0"
   },
   "exportedModules": ["Solver.SMTLIB.Z3"],
   "source": {

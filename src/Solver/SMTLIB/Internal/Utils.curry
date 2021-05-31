@@ -2,7 +2,7 @@
 --- This module provides utilities for interacting with SMT solvers.
 ---
 --- @author  Jan Tikovsky
---- @version December 2017
+--- @version May 2021
 --- ----------------------------------------------------------------------------
 module Solver.SMTLIB.Internal.Utils where
 

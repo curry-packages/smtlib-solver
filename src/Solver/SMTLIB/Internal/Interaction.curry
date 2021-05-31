@@ -5,7 +5,7 @@
 --- in Curry which are required during the interaction with an SMT solver.
 ---
 --- @author  Jan Tikovsky, Marcellus Siegburg
---- @version January 2018
+--- @version May 2021
 --- ----------------------------------------------------------------------------
 module Solver.SMTLIB.Internal.Interaction where
 
@@ -57,6 +57,10 @@ instance Monad SMTSess where
   m >>= f = SMTSess $ \s -> do
     (r, s') <- runSMTSess m s
     runSMTSess (f r) s'
+
+instance MonadFail SMTSess where
+  fail s = error s
+
 
 --- Get SMT session
 getSess :: SMTSess SMTSession

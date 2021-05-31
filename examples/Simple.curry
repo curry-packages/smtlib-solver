@@ -1,6 +1,7 @@
 --- Examples for using an SMT solver via Curry
 
-import Data.Either      (partitionEithers, rights)
+import Control.Monad    ( unless )
+import Data.Either      ( partitionEithers, rights )
 import Text.Pretty
 
 import Language.SMTLIB

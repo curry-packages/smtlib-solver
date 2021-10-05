@@ -79,6 +79,19 @@ main4 = do
     [] -> putStrLn "No solutions found"
     _  -> putDocLn $ hsep $ map pretty answers
 
+-- Example for returning all of the counter examples for a SMT problem
+main5 :: IO ()
+main5 = do
+  answers <- evalSessions z3 defSMTOpts $ do
+    [x, y, z, u] <- freshSMTVars 4 intSort
+    let problem = assert [x +% y =% u, u +% z =% 5]
+    a <- solveAllSMTVars [x, y, z] [problem] 3
+    return a
+  case answers of
+    Left errors -> putDocLn $ hsep $ map pretty errors
+    Right as    -> putDocLn $ hsep $ map pretty as
+  return ()
+
 --- Transform a 'Doc' to a string and print it to command line
 putDocLn :: Doc -> IO ()
 putDocLn = putStrLn . pPrint

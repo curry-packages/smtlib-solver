@@ -4,16 +4,23 @@
 --- Currently only the Z3 SMT solver is supported.
 ---
 --- @author  Jan Tikovsky, Marcellus Siegburg
---- @version January 2018
+--- @version August 2021
 --- ----------------------------------------------------------------------------
 module Solver.SMTLIB.Session
   ( module Solver.SMTLIB.Types
   , SMTError (..), SMTOpts (..), SMTSess, SMTSolver (..)
   , defSMTOpts, evalSessions, freshSMTVars, setSMTOpts, solveSMT, solveSMTVars
-  , liftIOA
+  , solveAllSMTVars, liftIOA
   ) where
 
-import Language.SMTLIB.Types (Command, ModelRsp, Sort, Term, ValuationPair)
+import Control.Monad.Extra     (concatMapM)
+import Data.List               (nub)
+import Data.Maybe              (fromJust)
+
+import Language.SMTLIB.Goodies (assert, (/=%))
+import Language.SMTLIB.Types   ( Command (Push, Pop), ModelRsp, Sort, Term
+                               , ValuationPair
+                               )
 
 import Solver.SMTLIB.Internal.Interaction
 import Solver.SMTLIB.Types
@@ -81,3 +88,57 @@ solveSMTVars vars cmds = evalSession $ do
       info "No variable bindings found for given SMT problem"
       optReset
       return $ Left $ res2Msgs res
+
+--- Solve the SMT problem specified by the given SMT-LIB commands and
+--- try to find all bindings for the given variable.
+--- The given integer determines how many counter examples are returned at
+--- maximum for each variable.
+solveAllSMTVars :: [Term] -> [Command] -> Int
+                -> SMTSess (Either [SMTError] [[ValuationPair]])
+solveAllSMTVars vars cmds i = evalSession $ do
+  bufferGlobalDefs
+  info "Asserting definitions and constraints"
+  sendCmds cmds
+  info "Checking satisfiability of constraints"
+  isSat <- checkSat
+  case isSat of
+    Sat -> do
+      info "Satisfiable -> Getting bindings of given variables for SMT problem"
+      vps <- getValues vars
+      case vps of
+        Right vps' -> do
+          vpss <- concatMapM (getCounterExamples vps' i) vars
+          optReset
+          return $ Right $ nub vpss
+        Left e     -> optReset >> (return $ Left e)
+    Unsat -> do
+      info "No variable bindings found for given SMT problem"
+      optReset
+      return $ Right []
+    res -> do
+      info "An error occurred while solving given SMT problem"
+      optReset
+      return $ Left $ res2Msgs res
+  where
+    getCounterExamples :: [ValuationPair] -> Int -> Term
+                       -> SMT [[ValuationPair]]
+    getCounterExamples vps i' var = do
+      bufferCmds [Push 1]
+      vpss <- assertCounterExamples (fromJust $ lookup var vps) [vps] var i'
+      bufferCmds [Pop 1]
+      return vpss
+
+    assertCounterExamples :: Term -> [[ValuationPair]] -> Term -> Int
+                          -> SMT [[ValuationPair]]
+    assertCounterExamples v vpss var i' = do
+      sendCmds [assert [var /=% v]]
+      isSat <- checkSat
+      case isSat of
+        Sat -> do
+          vps <- getValues vars
+          case vps of
+            Right vps' | i' > 1 -> assertCounterExamples
+                                     (fromJust $ lookup var vps')
+                                     (vps':vpss) var (i' - 1)
+            _                   -> return vpss
+        _ -> return vpss

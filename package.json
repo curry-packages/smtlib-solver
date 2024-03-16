@@ -16,7 +16,7 @@
   },
   "exportedModules": ["Solver.SMTLIB.Z3"],
   "source": {
-     "git": "https://git.ps.informatik.uni-kiel.de/curry-packages/smtlib-solver.git",
+     "git": "https://github.com/curry-packages/smtlib-solver.git",
      "tag": "$version"
   }
 }
